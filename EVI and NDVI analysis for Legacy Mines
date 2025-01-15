@@ -1,0 +1,70 @@
+//// Using GEE for EVI and NDVI analysis.
+///  Legacy Mines Soil profiling ------> Unsupervised Classification
+
+/// First:  Define ROI: Region of Interest (Polygon tool)
+// Center the map on the ROI
+Map.centerObject(roi, 10);
+
+// Load Sentinel-2 data
+var sentinel2 = ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
+  .filterBounds(roi)
+  .filterDate('1992-01-01', '2023-12-31') // Adjust the date range as needed
+  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)); // Filter out cloudy images
+
+// Function to calculate NDVI
+var calculateNDVI = function(image) {
+  var ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI');
+  return image.addBands(ndvi);
+};
+
+// Function to calculate EVI
+var calculateEVI = function(image) {
+  var evi = image.expression(
+    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+      'NIR': image.select('B8'),
+      'RED': image.select('B4'),
+      'BLUE': image.select('B2')
+    }).rename('EVI');
+  return image.addBands(evi);
+};
+
+// Apply the NDVI and EVI calculations to the image collection
+var withNDVI = sentinel2.map(calculateNDVI);
+var withEVI = sentinel2.map(calculateEVI);
+
+// Get the median image for NDVI and EVI
+var medianNDVI = withNDVI.select('NDVI').median();
+var medianEVI = withEVI.select('EVI').median();
+
+// Define visualization parameters
+var ndviParams = {min: -1, max: 1, palette: ['blue', 'white', 'green']};
+var eviParams = {min: -1, max: 1, palette: ['blue', 'white', 'green']};
+
+// Add the NDVI and EVI layers to the map
+Map.addLayer(medianNDVI.clip(roi), ndviParams, 'Median NDVI');
+Map.addLayer(medianEVI.clip(roi), eviParams, 'Median EVI');
+
+// Print the NDVI and EVI images to the console
+print('Median NDVI:', medianNDVI);
+print('Median EVI:', medianEVI);
+
+// Generate a download URL for the median iron oxide image
+var url = medianNDVI.clip(roi).getDownloadURL({
+  scale: 10, // Adjust the scale as needed
+  region: roi,
+  format: 'GeoTIFF'
+});
+
+// Print the URL to the console
+print('Download URL:', url);
+
+// Generate a download URL for the median iron oxide image
+var url = medianEVI.clip(roi).getDownloadURL({
+  scale: 10, // Adjust the scale as needed
+  region: roi,
+  format: 'GeoTIFF'
+});
+
+// Print the URL to the console
+print('Download URL:', url);
+
