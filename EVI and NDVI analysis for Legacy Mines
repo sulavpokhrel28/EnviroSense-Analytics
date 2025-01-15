@@ -1,5 +1,5 @@
 //// Using GEE for EVI and NDVI analysis.
-///  Legacy Mines Soil profiling ------> Unsupervised Classification
+///  Mining Industry Soil profiling ------> Unsupervised Classification
 
 /// First:  Define ROI: Region of Interest (Polygon tool)
 // Center the map on the ROI
